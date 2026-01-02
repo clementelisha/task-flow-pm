@@ -262,7 +262,7 @@ save();viewProject(pidx);
 
 document.getElementById('tabs').onclick=(e)=>{
 if(e.target.classList.contains('tab')){
-document.querySelectorAll('.tab').forEach(t=>t.classList.remove(‘active’));
+document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
 e.target.classList.add('active');
 S.currentTab=e.target.dataset.tab;
 render();
