@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TaskFlow</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f5;max-width:480px;margin:0 auto;height:100vh;overflow:hidden}
+.app{display:flex;flex-direction:column;height:100vh;background:#fff}
+.header{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.header h1{font-size:24px;margin-bottom:4px}
+.header p{font-size:12px;opacity:.9}
+.tabs{display:flex;background:#fff;border-bottom:1px solid #e0e0e0}
+.tab{flex:1;padding:12px;text-align:center;cursor:pointer;border-bottom:2px solid transparent;transition:.2s}
+.tab.active{border-bottom-color:#667eea;color:#667eea;font-weight:600}
+.content{flex:1;overflow-y:auto;padding:16px}
+.fab{position:fixed;bottom:80px;right:20px;width:56px;height:56px;border-radius:50%;background:#667eea;color:#fff;border:none;font-size:24px;cursor:pointer;box-shadow:0 4px 12px rgba(102,126,234,.4)}
+.modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:100}
+.modal.show{display:flex;align-items:center;justify-content:center}
+.modal-content{background:#fff;border-radius:12px;width:90%;max-width:400px;padding:24px}
+.modal-content h2{margin-bottom:16px;font-size:20px}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;margin-bottom:4px;font-size:14px;color:#666}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-size:14px}
+.form-group textarea{resize:vertical;min-height:60px}
+.btn-group{display:flex;gap:8px;margin-top:20px}
+.btn{flex:1;padding:10px;border:none;border-radius:6px;cursor:pointer;font-size:14px;font-weight:600}
+.btn-primary{background:#667eea;color:#fff}
+.btn-secondary{background:#e0e0e0;color:#333}
+.project-card{background:#fff;border:1px solid #e0e0e0;border-radius:8px;padding:16px;margin-bottom:12px;cursor:pointer;transition:.2s}
+.project-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.project-header{display:flex;justify-content:space-between;align-items:start;margin-bottom:8px}
+.project-title{font-weight:600;font-size:16px;color:#333}
+.project-status{font-size:11px;padding:4px 8px;border-radius:12px;font-weight:600}
+.status-active{background:#e3f2fd;color:#1976d2}
+.status-completed{background:#e8f5e9;color:#388e3c}
+.status-planning{background:#fff3e0;color:#f57c00}
+.project-desc{font-size:13px;color:#666;margin-bottom:8px}
+.project-meta{display:flex;gap:12px;font-size:12px;color:#999}
+.task-item{background:#f9f9f9;border-left:3px solid #667eea;padding:12px;margin-bottom:8px;border-radius:4px}
+.task-item.done{opacity:.6;border-left-color:#4caf50}
+.task-item.done .task-title{text-decoration:line-through}
+.task-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.task-title{font-weight:600;font-size:14px}
+.task-priority{font-size:10px;padding:2px 6px;border-radius:8px;font-weight:600}
+.priority-high{background:#ffebee;color:#c62828}
+.priority-medium{background:#fff3e0;color:#f57c00}
+.priority-low{background:#e8f5e9;color:#388e3c}
+.task-desc{font-size:12px;color:#666;margin-bottom:4px}
+.task-actions{display:flex;gap:8px;margin-top:8px}
+.task-btn{padding:4px 12px;border:none;border-radius:4px;font-size:11px;cursor:pointer;font-weight:600}
+.btn-complete{background:#e8f5e9;color:#388e3c}
+.btn-delete{background:#ffebee;color:#c62828}
+.empty{text-align:center;padding:40px 20px;color:#999}
+.nav{display:flex;background:#fff;border-top:1px solid #e0e0e0;position:fixed;bottom:0;left:0;right:0;max-width:480px;margin:0 auto}
+.nav-item{flex:1;padding:12px;text-align:center;cursor:pointer;border-top:2px solid transparent}
+.nav-item.active{border-top-color:#667eea;color:#667eea}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.stat-card{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:#fff;padding:16px;border-radius:8px;text-align:center}
+.stat-value{font-size:32px;font-weight:700;margin-bottom:4px}
+.stat-label{font-size:12px;opacity:.9}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="header">
+<h1>TaskFlow</h1>
+<p id="userName">My Projects</p>
+</div>
+<div class="tabs">
+<div class="tab active" data-tab="projects">Projects</div>
+<div class="tab" data-tab="tasks">All Tasks</div>
+<div class="tab" data-tab="stats">Stats</div>
+</div>
+<div class="content" id="content"></div>
+<button class="fab" id="fab">+</button>
+</div>
+
+<div class="modal" id="modal">
+<div class="modal-content">
+<h2 id="modalTitle">New Project</h2>
+<div id="modalForm"></div>
+</div>
+</div>
+
+<script>
+let state={projects:[],currentTab:'projects',currentProject:null};
+
+const load=()=>{const d=localStorage.getItem('taskflow');if(d)state={...state,...JSON.parse(d)}};
+const save=()=>localStorage.setItem('taskflow',JSON.stringify({projects:state.projects}));
+
+const render=()=>{
+const c=document.getElementById('content');
+if(state.currentTab==='projects'){
+c.innerHTML=state.projects.length?state.projects.map(p=>`
+<div class="project-card" onclick="viewProject('${p.id}')">
+<div class="project-header">
+<div class="project-title">${p.name}</div>
+<div class="project-status status-${p.status}">${p.status}</div>
+</div>
+<div class="project-desc">${p.desc}</div>
+<div class="project-meta">
+<span>📅 ${p.date}</span>
+<span>✓ ${p.tasks.filter(t=>t.done).length}/${p.tasks.length}</span>
+</div>
+</div>
+`).join(''):'<div class="empty">No projects yet<br>Tap + to create one</div>';
+}else if(state.currentTab==='tasks'){
+const tasks=state.projects.flatMap(p=>p.tasks.map(t=>({...t,project:p.name})));
+c.innerHTML=tasks.length?tasks.map(t=>`
+<div class="task-item ${t.done?'done':''}">
+<div class="task-header">
+<div class="task-title">${t.title}</div>
+<div class="task-priority priority-${t.priority}">${t.priority}</div>
+</div>
+<div class="task-desc">${t.project}</div>
+</div>
+`).join(''):'<div class="empty">No tasks yet</div>';
+}else{
+const total=state.projects.length;
+const completed=state.projects.filter(p=>p.status==='completed').length;
+const tasks=state.projects.flatMap(p=>p.tasks);
+const doneTasks=tasks.filter(t=>t.done).length;
+c.innerHTML=`
+<div class="stats">
+<div class="stat-card"><div class="stat-value">${total}</div><div class="stat-label">Projects</div></div>
+<div class="stat-card"><div class="stat-value">${completed}</div><div class="stat-label">Completed</div></div>
+<div class="stat-card"><div class="stat-value">${tasks.length}</div><div class="stat-label">Total Tasks</div></div>
+<div class="stat-card"><div class="stat-value">${doneTasks}</div><div class="stat-label">Done Tasks</div></div>
+</div>
+${state.projects.map(p=>`
+<div class="project-card">
+<div class="project-header">
+<div class="project-title">${p.name}</div>
+<div class="project-status status-${p.status}">${p.status}</div>
+</div>
+<div class="project-meta">
+<span>Tasks: ${p.tasks.filter(t=>t.done).length}/${p.tasks.length}</span>
+</div>
+</div>
+`).join('')}
+`;
+}
+};
+
+const showModal=(title,form)=>{
+document.getElementById('modalTitle').textContent=title;
+document.getElementById('modalForm').innerHTML=form;
+document.getElementById('modal').classList.add('show');
+};
+
+const hideModal=()=>document.getElementById('modal').classList.remove('show');
+
+const addProject=()=>{
+showModal('New Project',`
+<div class="form-group"><label>Project Name</label><input id="pName" placeholder="Enter project name"></div>
+<div class="form-group"><label>Description</label><textarea id="pDesc" placeholder="Project description"></textarea></div>
+
+<div class="form-group"><label>Status</label><select id="pStatus">
+<option value="planning">Planning</option>
+<option value="active">Active</option>
+<option value="completed">Completed</option>
+</select></div>
+<div class="btn-group">
+<button class="btn btn-secondary" onclick="hideModal()">Cancel</button>
+<button class="btn btn-primary" onclick="saveProject()">Create</button>
+</div>
+`);
+};
+
+const saveProject=()=>{
+const name=document.getElementById(‘pName’).value;
+const desc=document.getElementById(‘pDesc’).value;
+const status=document.getElementById(‘pStatus’).value;
+if(!name)return alert(‘Name required’);
+state.projects.push({id:Date.now().toString(),name,desc,status,date:new Date().toLocaleDateString(),tasks:[]});
+save();render();hideModal();
+};
+
+const viewProject=(id)=>{
+const p=state.projects.find(x=>x.id===id);
+if(!p)return;
+showModal(p.name,`
+
+<div class="project-desc">${p.desc}</div>
+<div class="project-meta" style="margin:12px 0"><span>Status: ${p.status}</span></div>
+<h3 style="margin:16px 0 8px;font-size:16px">Tasks (${p.tasks.length})</h3>
+<div>${p.tasks.map(t=>`
+<div class="task-item ${t.done?'done':''}">
+<div class="task-header">
+<div class="task-title">${t.title}</div>
+<div class="task-priority priority-${t.priority}">${t.priority}</div>
+</div>
+<div class="task-desc">${t.desc}</div>
+<div class="task-actions">
+<button class="task-btn btn-complete" onclick="toggleTask('${id}','${t.id}')">${t.done?'Undo':'Complete'}</button>
+<button class="task-btn btn-delete" onclick="deleteTask('${id}','${t.id}')">Delete</button>
+</div>
+</div>
+`).join('')||'<div class="empty">No tasks yet</div>'}</div>
+<div class="btn-group" style="margin-top:20px">
+<button class="btn btn-primary" onclick="addTask('${id}')">Add Task</button>
+<button class="btn btn-secondary" onclick="hideModal()">Close</button>
+</div>
+`);
+};
+
+const addTask=(pid)=>{
+showModal(‘New Task’,`
+
+<div class="form-group"><label>Task Title</label><input id="tTitle" placeholder="Enter task title"></div>
+<div class="form-group"><label>Description</label><textarea id="tDesc" placeholder="Task description"></textarea></div>
+<div class="form-group"><label>Priority</label><select id="tPriority">
+<option value="low">Low</option>
+<option value="medium">Medium</option>
+<option value="high">High</option>
+</select></div>
+<div class="btn-group">
+<button class="btn btn-secondary" onclick="viewProject('${pid}')">Cancel</button>
+<button class="btn btn-primary" onclick="saveTask('${pid}')">Add Task</button>
+</div>
+`);
+};
+
+const saveTask=(pid)=>{
+const title=document.getElementById(‘tTitle’).value;
+const desc=document.getElementById(‘tDesc’).value;
+const priority=document.getElementById(‘tPriority’).value;
+if(!title)return alert(‘Title required’);
+const p=state.projects.find(x=>x.id===pid);
+p.tasks.push({id:Date.now().toString(),title,desc,priority,done:false});
+save();viewProject(pid);
+};
+
+const toggleTask=(pid,tid)=>{
+const p=state.projects.find(x=>x.id===pid);
+const t=p.tasks.find(x=>x.id===tid);
+t.done=!t.done;
+save();viewProject(pid);
+};
+
+const deleteTask=(pid,tid)=>{
+if(!confirm(‘Delete this task?’))return;
+const p=state.projects.find(x=>x.id===pid);
+p.tasks=p.tasks.filter(x=>x.id!==tid);
+save();viewProject(pid);
+};
+
+document.querySelectorAll(’.tab’).forEach(t=>t.addEventListener(‘click’,e=>{
+document.querySelectorAll(’.tab’).forEach(x=>x.classList.remove(‘active’));
+e.target.classList.add(‘active’);
+state.currentTab=e.target.dataset.tab;
+render();
+}));
+
+document.getElementById(‘fab’).addEventListener(‘click’,()=>{
+if(state.currentTab===‘projects’)addProject();
+});
+
+load();render();
+</script>
+
+</body>
+</html>
