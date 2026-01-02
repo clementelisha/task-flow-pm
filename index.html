@@ -187,10 +187,10 @@ showModal('New Project',`
 };
 
 window.saveProject=()=>{
-const name=document.getElementById(‘pName’).value;
-const desc=document.getElementById(‘pDesc’).value;
-const status=document.getElementById(‘pStatus’).value;
-if(!name)return alert(‘Name required’);
+const name=document.getElementById('pName').value;
+const desc=document.getElementById('pDesc').value;
+const status=document.getElementById('pStatus').value;
+if(!name)return alert('Name required');
 S.projects.push({id:Date.now().toString(),name,desc,status,date:new Date().toLocaleDateString(),tasks:[]});
 save();render();hideModal();
 };
@@ -224,7 +224,7 @@ showModal(p.name,`
 };
 
 window.addTask=(idx)=>{
-showModal(‘New Task’,`
+showModal('New Task',`
 
 <div class="form-group"><label>Task Title</label><input id="tTitle" placeholder="What needs to be done?"></div>
 <div class="form-group"><label>Description</label><textarea id="tDesc" placeholder="Add details..."></textarea></div>
@@ -241,10 +241,10 @@ showModal(‘New Task’,`
 };
 
 window.saveTask=(idx)=>{
-const title=document.getElementById(‘tTitle’).value;
-const desc=document.getElementById(‘tDesc’).value;
-const priority=document.getElementById(‘tPriority’).value;
-if(!title)return alert(‘Title required’);
+const title=document.getElementById('tTitle').value;
+const desc=document.getElementById('tDesc').value;
+const priority=document.getElementById('tPriority').value;
+if(!title)return alert('Title required');
 S.projects[idx].tasks.push({id:Date.now().toString(),title,desc,priority,done:false});
 save();viewProject(idx);
 };
@@ -255,26 +255,26 @@ save();viewProject(pidx);
 };
 
 window.deleteTask=(pidx,tidx)=>{
-if(!confirm(‘Delete this task?’))return;
+if(!confirm('Delete this task?'))return;
 S.projects[pidx].tasks.splice(tidx,1);
 save();viewProject(pidx);
 };
 
-document.getElementById(‘tabs’).onclick=(e)=>{
-if(e.target.classList.contains(‘tab’)){
-document.querySelectorAll(’.tab’).forEach(t=>t.classList.remove(‘active’));
-e.target.classList.add(‘active’);
+document.getElementById('tabs').onclick=(e)=>{
+if(e.target.classList.contains('tab')){
+document.querySelectorAll('.tab').forEach(t=>t.classList.remove(‘active’));
+e.target.classList.add('active');
 S.currentTab=e.target.dataset.tab;
 render();
 }
 };
 
-document.getElementById(‘fab’).onclick=()=>{
-if(S.currentTab===‘projects’)addProject();
+document.getElementById('fab').onclick=()=>{
+if(S.currentTab==='projects')addProject();
 };
 
-document.getElementById(‘modal’).onclick=(e)=>{
-if(e.target.id===‘modal’)hideModal();
+document.getElementById('modal').onclick=(e)=>{
+if(e.target.id==='modal')hideModal();
 };
 
 load();render();
